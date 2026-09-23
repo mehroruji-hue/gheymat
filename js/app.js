@@ -80,7 +80,6 @@ function render() {
     </div>
 
     <section class="pad-box">
-      <div class="pad-label">مبلغ را اینجا وارد کن</div>
       <div class="pad" id="pad">
       ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => `<button data-d="${d}">${fa(d)}</button>`).join('')}
       <button data-d="000" class="wide">۰۰۰</button>

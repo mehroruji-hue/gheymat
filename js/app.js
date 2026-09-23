@@ -168,7 +168,7 @@ async function openCamera() {
   cam.className = 'cam';
   cam.innerHTML = `
     <video playsinline muted></video>
-    <div class="cam-hint">قیمت را داخل کادر بگیر<br><small style="font-weight:600;opacity:.85">فعلاً فقط ارقام لاتین (123) خوانده می‌شود</small></div>
+    <div class="cam-hint">قیمت را داخل کادر بگیر<br><small style="font-weight:600;opacity:.85">ارقام فارسی و لاتین، هر دو</small></div>
     <div class="cam-frame"></div>
     <div class="cam-read"><b id="live">…</b><div id="camStatus" class="hint" style="color:#fff">در حال آماده‌سازی</div></div>
     <div class="cam-bar">
@@ -207,7 +207,7 @@ async function openCamera() {
       (hit) => {
         candidate = hit;
         $('#live', cam).textContent = group(hit.value);
-        $('#camStatus', cam).textContent = `${UNITS[state.unit].fa} — اگر درست است تأیید کن`;
+        $('#camStatus', cam).textContent = `${UNITS[state.unit].fa} · ${hit.script === 'fa' ? 'ارقام فارسی' : 'ارقام لاتین'} — اگر درست است تأیید کن`;
         $('#camOk', cam).classList.add('btn-primary');
         $('#camOk', cam).disabled = false;
       },

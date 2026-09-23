@@ -1,5 +1,7 @@
 // خواندن عدد از تصویر زنده‌ی دوربین — بدون عکس گرفتن و بدون ارسال هیچ تصویری
 
+import { readPersian, buildTemplates } from './fadigits.js';
+
 const TESSERACT_SRC = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 
 let workerPromise = null;
@@ -96,31 +98,56 @@ export class Scanner {
     this.ctx.putImageData(img, 0, 0);
   }
 
-  /** حلقه‌ی خواندن: هر بار عددی پیدا شد، onResult صدا زده می‌شود */
+  /**
+   * حلقه‌ی خواندن. اول ارقام فارسی را با تشخیص‌دهنده‌ی داخلی امتحان می‌کند
+   * (سریع، آفلاین و بدون دانلود)؛ اگر چند بار پشت‌سرهم چیزی پیدا نشد،
+   * یعنی احتمالاً برچسب با ارقام لاتین است و موتور بیرونی بارگذاری می‌شود.
+   */
   async loop(onResult, onProgress) {
-    const worker = await getWorker(onProgress);
     this.running = true;
+    await buildTemplates();
+    let misses = 0;
+    let workerPromise = null;
+
     while (this.running) {
       const canvas = this.grabStrip();
       if (canvas) {
+        let hit = null;
+
         try {
-          const { data } = await worker.recognize(canvas);
-          const hit = bestNumber(data.text, data.confidence);
-          // عدد اشتباه از نخواندن بدتر است: زیر این حد اطمینان، چیزی پیشنهاد نمی‌کنیم
-          if (hit && data.confidence >= 70) onResult(hit);
+          const fa = await readPersian(canvas);
+          if (fa && fa.confidence >= 68 && fa.digits.length >= 3 && fa.digits.length <= 12) {
+            hit = { value: Number(fa.digits), raw: fa.digits, confidence: fa.confidence, script: 'fa' };
+          }
         } catch {
-          /* یک فریم خراب، مهم نیست */
+          /* فریم خراب */
         }
+
+        if (hit) {
+          misses = 0;
+        } else if (++misses >= 5) {
+          try {
+            workerPromise = workerPromise || getWorker(onProgress);
+            const worker = await workerPromise;
+            const { data } = await worker.recognize(canvas);
+            const b = bestNumber(data.text, data.confidence);
+            // عدد اشتباه از نخواندن بدتر است: زیر این حد اطمینان چیزی پیشنهاد نمی‌کنیم
+            if (b && data.confidence >= 70) hit = { ...b, script: 'en' };
+          } catch {
+            /* موتور لاتین در دسترس نیست؛ فارسی همچنان کار می‌کند */
+          }
+        }
+
+        if (hit) onResult(hit);
       }
-      await new Promise((r) => setTimeout(r, 350));
+      await new Promise((r) => setTimeout(r, 250));
     }
   }
 }
 
 /**
- * محدودیت شناخته‌شده: موتور تشخیص روی **ارقام لاتین** (۱۲۳ به شکل 123) دقیق است،
- * ولی ارقام فارسی را قابل اتکا نمی‌خواند. برای همین در رابط کاربری صریح گفته می‌شود
- * و ورود دستی همیشه در دسترس است.
+ * ارقام فارسی با تشخیص‌دهنده‌ی داخلی (js/fadigits.js) خوانده می‌شوند و
+ * ارقام لاتین با موتور بیرونی. هر دو نتیجه قبل از استفاده باید تأیید کاربر بگیرند.
  */
 // از متن خوانده‌شده، محتمل‌ترین «مبلغ» را درمی‌آورد
 export function bestNumber(text, confidence = 0) {

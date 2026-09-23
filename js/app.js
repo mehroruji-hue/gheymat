@@ -79,12 +79,15 @@ function render() {
       <button data-unit="rial" class="${state.unit === 'rial' ? 'on' : ''}">ریال</button>
     </div>
 
-    <div class="pad" id="pad">
+    <section class="pad-box">
+      <div class="pad-label">مبلغ را اینجا وارد کن</div>
+      <div class="pad" id="pad">
       ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => `<button data-d="${d}">${fa(d)}</button>`).join('')}
       <button data-d="000" class="wide">۰۰۰</button>
       <button data-d="0">۰</button>
       <button id="del" class="del" aria-label="پاک کردن">${icon('del')}</button>
-    </div>
+      </div>
+    </section>
 
     <section class="panel">
       <h3>تخفیف</h3>

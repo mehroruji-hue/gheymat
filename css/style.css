@@ -153,6 +153,20 @@ ul { margin: 0; padding: 0; list-style: none; }
 .unit-switch button.on { background: var(--surface); color: var(--brand); box-shadow: var(--shadow); }
 
 /* صفحه‌کلید */
+.pad-box {
+  border: 2.5px solid var(--brand);
+  border-radius: var(--r);
+  padding: 12px 10px 10px;
+  background: var(--surface);
+  position: relative;
+  margin-top: 8px;
+}
+.pad-label {
+  position: absolute; top: -13px; inset-inline-start: 14px;
+  background: var(--brand); color: var(--brand-ink);
+  font-size: 13px; font-weight: 700; padding: 1px 12px; border-radius: 999px;
+}
+
 .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .pad button {
   min-height: 62px; border: 1px solid var(--rule); border-radius: 14px;

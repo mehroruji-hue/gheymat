@@ -19,7 +19,11 @@ const state = {
   digits: '',
   unit: 'toman',
   discounts: [],
+  custom: 0, // درصد دلخواه
 };
+
+// همه‌ی تخفیف‌های فعال: چیپ‌های انتخاب‌شده به‌علاوه‌ی درصد دلخواه
+const activeDiscounts = () => [...state.discounts, ...(state.custom > 0 ? [state.custom] : [])];
 
 const amount = () => parseAmount(state.digits);
 
@@ -53,8 +57,6 @@ function toast(msg) {
 function render() {
   const app = $('#app');
   const v = amount();
-  const { final, saved } = afterDiscount(v, state.discounts);
-  const hasDiscount = state.discounts.length > 0 && v > 0;
 
   app.innerHTML = `
     <header class="top">
@@ -94,16 +96,14 @@ function render() {
         ${[10, 20, 30, 40, 50, 70].map((p) =>
           `<button data-p="${p}" class="${state.discounts.includes(p) ? 'on' : ''}">${fa(p)}٪</button>`).join('')}
       </div>
+      <div class="custom-row">
+        <label for="customP">درصد دلخواه</label>
+        <input id="customP" inputmode="numeric" maxlength="2" placeholder="مثلاً ۳۵"
+          value="${state.custom ? fa(state.custom) : ''}" autocomplete="off">
+        <span>٪</span>
+      </div>
       <p class="hint">می‌تونی دو تخفیف را با هم بزنی؛ پشت‌سرهم حساب می‌شود.</p>
-      ${hasDiscount
-        ? `<div class="result">
-             <div class="hint">${state.discounts.map((p) => fa(p) + '٪').join(' + ')} تخفیف</div>
-             <div class="final">${bigNumber(final, state.unit, 32)}</div>
-             <div class="final-words">${words(final)} ${UNITS[state.unit].fa}</div>
-             <div class="saved num">${group(saved)} ${UNITS[state.unit].fa} کمتر می‌دهی</div>
-             <button class="btn btn-ghost" id="speakFinal">${icon('speaker')} خواندن قیمت نهایی</button>
-           </div>`
-        : ''}
+      <div id="resultBox">${resultHtml()}</div>
     </section>
 
     <div id="err"></div>
@@ -135,15 +135,51 @@ function render() {
     b.onclick = () => {
       const p = Number(b.dataset.p);
       const i = state.discounts.indexOf(p);
+      const max = state.custom > 0 ? 1 : 2; // جمعاً دو تخفیف
       if (i >= 0) state.discounts.splice(i, 1);
-      else if (state.discounts.length < 2) state.discounts.push(p);
+      else if (state.discounts.length < max) state.discounts.push(p);
       else state.discounts = [p];
       render();
     };
   });
   $('#speak').onclick = () => speak(speakable(v, state.unit));
-  $('#speakFinal')?.addEventListener('click', () => speak(`${words(final)} ${UNITS[state.unit].fa}`));
   $('#scan').onclick = openCamera;
+
+  const input = $('#customP');
+  input.oninput = () => {
+    const n = Math.min(99, parseAmount(input.value));
+    input.value = n ? fa(n) : '';
+    state.custom = n;
+    refreshResult();
+  };
+  bindResult();
+}
+
+// کارت نتیجه جدا رندر می‌شود تا هنگام تایپ درصد، تمرکز از فیلد بیرون نرود
+function resultHtml() {
+  const v = amount();
+  const list = activeDiscounts();
+  if (!list.length || !v) return '';
+  const { final, saved } = afterDiscount(v, list);
+  return `<div class="result">
+      <div class="hint">${list.map((p) => fa(p) + '٪').join(' + ')} تخفیف</div>
+      <div class="final">${bigNumber(final, state.unit, 32)}</div>
+      <div class="final-words">${words(final)} ${UNITS[state.unit].fa}</div>
+      <div class="saved num">${group(saved)} ${UNITS[state.unit].fa} کمتر می‌دهی</div>
+      <button class="btn btn-ghost" id="speakFinal">${icon('speaker')} خواندن قیمت نهایی</button>
+    </div>`;
+}
+
+function bindResult() {
+  $('#speakFinal')?.addEventListener('click', () => {
+    const { final } = afterDiscount(amount(), activeDiscounts());
+    speak(`${words(final)} ${UNITS[state.unit].fa}`);
+  });
+}
+
+function refreshResult() {
+  $('#resultBox').innerHTML = resultHtml();
+  bindResult();
 }
 
 // ---------- خواندن با صدا ----------
